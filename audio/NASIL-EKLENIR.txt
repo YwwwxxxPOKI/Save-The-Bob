@@ -1,0 +1,16 @@
+Bu klasore 9 ses dosyasi konmali (hepsi Fish Audio, ERKEK sesi, kisa). Adlar AYNEN boyle olmali (kucuk harf, .mp3):
+
+hot.mp3     "Hot hot hot!" (3 kez, hizli) (yanarken)
+ouch.mp3    "Ouch!"              (yere carpinca)
+aah.mp3     "Aaaah!"             (dusunce)
+yay.mp3     "Yay!"               (altin / oyun baslangici)
+whoa.mp3    "Whoa!"              (ruzgar, sicrama)
+eek.mp3     "Eek!"               (catal / bicak)
+choir1.mp3  "Saaave theee Boooob" (acilis korosu, 1. ses)
+choir2.mp3  "Saaave theee Boooob" (acilis korosu, 2. ses)
+choir3.mp3  "Saaave theee Boooob" (acilis korosu, 3. ses)
+
+EN KOLAY YOL: klasorun ustundeki ses-indir.bat dosyasina cift tikla. Hepsini otomatik indirir.
+
+Dosya yoksa oyun eski sentezlenmis seslerle calisir, bozulmaz.
+Poki'ye yuklerken audio/ klasoru da zip'in icinde olmali.
