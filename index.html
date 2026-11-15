@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" style="color-scheme:only light;background:#f1e3cf">
+<html lang="en" style="color-scheme:light dark;background:#f1e3cf;color:#4b3a30">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Save the Bob"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#f1e3cf"><meta name="color-scheme" content="only light"><meta name="supported-color-schemes" content="light"><meta name="darkreader-lock"><meta name="nightmode" content="disable">
-<style>:root{color-scheme:only light}html,body{background:#f1e3cf;color:#4b3a30}*{forced-color-adjust:none}
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Save the Bob"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#f1e3cf"><meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark"><meta name="darkreader-lock"><meta name="nightmode" content="disable">
+<style>:root{color-scheme:light dark}html,body{background:#f1e3cf;color:#4b3a30}*{forced-color-adjust:none}
+@media (prefers-color-scheme:dark){:root{color-scheme:light dark}html,body{background:#f1e3cf!important;color:#4b3a30}}
 @media (inverted-colors){html{filter:invert(100%)}}</style>
 <title>Save the Bob | Deluxe Edition</title>
 <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js" defer></script>
@@ -127,7 +128,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:20px;background:#ff9d7e;bo
 
 /* ===== Telefon düzeni + karanlık mod düzeltmeleri ===== */
 /* Karanlık mod: oyun HER ZAMAN açık renk. Medya sorgusu yok, geçiş yok, renk ilk karede sabit. */
-:root,body,canvas,img,svg,button,select,input{color-scheme:only light}
+canvas,img,svg,button,select,input,.grid,.mpwrap,.screen{color-scheme:only light}
 html,body{background:#f1e3cf!important;color:#4b3a30}
 .item,.settings-box,.mpcard,.pill,.sq,#toast,#best{background:#fff8ee!important;color:#4b3a30!important}
 select,input{background:#f1e3cf!important;color:#4b3a30!important}
@@ -218,6 +219,8 @@ select,input{background:#f1e3cf!important;color:#4b3a30!important}
   <div class="setting-row"><span id="txtMusicLabel">Music</span><button class="btn sm" id="musicToggleBtn">ON</button></div>
   <div class="setting-row"><span id="txtSensLabel">Sensitivity</span><input type="range" id="sensRange" min="50" max="170" value="100"></div>
   <div class="setting-row"><span id="txtCtrlLabel">Controls</span><select id="ctrlSelect"><option value="tilt" id="optTilt">Tilt</option><option value="touch" id="optTouch">Touch</option></select></div>
+  <div class="setting-row" id="zeroRow"><span id="txtZeroLabel">Tilt zero</span><select id="zeroSelect"><option value="low">30°</option><option value="mid">50°</option><option value="high">70°</option></select></div>
+  <div id="buildTag" style="font-size:12px;opacity:.5;text-align:center;margin-top:-6px"></div>
  </div>
  <button class="btn" id="settingsBack"><svg viewBox="0 0 24 24"><path d="M12 3 2 12h3v8h5v-5h4v5h5v-8h3L12 3z"/></svg><span id="txtBack2">Back</span></button>
 </div>
@@ -258,6 +261,7 @@ select,input{background:#f1e3cf!important;color:#4b3a30!important}
 
 <script src="audio/sesler.js"></script>
 <script>
+const BUILD='v12-boyut-0-fix';try{console.log('Save the Bob build',BUILD)}catch(e){}
 // ================= Dil =================
 const LANG={
  en:{play:"Play",shop:"Shop",multi:"Multiplayer",back:"Back",settings:"Settings",lang:"Language",sound:"Sound Effects",music:"Music",sens:"Sensitivity",
@@ -335,6 +339,7 @@ function updateTexts(){try{$('tapHint').textContent=T().tap}catch(e){}
  $('tabSkins').textContent=t.tabSkins;$('tabMaps').textContent=t.tabMaps;
  $('langSelect').value=S.lang;$('soundToggleBtn').textContent=muted?'OFF':'ON';$('musicToggleBtn').textContent=S.music?'ON':'OFF';
  $('sensRange').value=Math.round(S.sens*100);$('txtCtrlLabel').textContent=t.ctrl;$('optTilt').textContent=t.ctrlTilt;$('optTouch').textContent=t.ctrlTouch;$('ctrlSelect').value=S.ctrl;
+ $('txtZeroLabel').textContent=({tr:'Eğim sıfırı',es:'Cero de inclinación'})[S.lang]||'Tilt zero';$('zeroSelect').value=S.zero||'mid';$('zeroRow').style.display=S.ctrl==='tilt'?'':'none';$('buildTag').textContent='build '+BUILD;
  $('best').textContent=S.best?t.best+S.best:'';
 }
 
@@ -572,10 +577,14 @@ function mkBg(){
   b.fillStyle=c;b.fillRect(x,y,1,1);
  }
  bgc.width=W*dpr;bgc.height=H*dpr;const c2=bgc.getContext('2d');c2.setTransform(dpr,0,0,dpr,0,0);c2.imageSmoothingEnabled=false;
- c2.drawImage(lc,0,0,lw,lh,ox,oy,lw*p,lh*p);
+ if(lc.width>0&&lc.height>0)c2.drawImage(lc,0,0,lw,lh,ox,oy,lw*p,lh*p);
 }
-function rs(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0);R=Math.min(W*.44,H*.36,230);cx=W/2;cy=H/2+8;mkBg()}
-addEventListener('resize',rs);
+let rsT=0;
+// Pencere boyutu 0 ise (gizli iframe, arka plan sekmesi, ekran donerken) canvas 0x0 olur ve drawImage hata verir.
+// Gecerli boyut gelene kadar son bilinen / varsayilan boyutla devam edilir ve 250 ms'de bir tekrar denenir.
+function rs(){clearTimeout(rsT);let iw=innerWidth|0,ih=innerHeight|0;if(iw<2||ih<2){iw=W>1?W:360;ih=H>1?H:640;rsT=setTimeout(rs,250)}
+ dpr=Math.min(devicePixelRatio||1,2);W=iw;H=ih;cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0);R=Math.min(W*.44,H*.36,230);cx=W/2;cy=H/2+8;mkBg()}
+addEventListener('resize',rs);addEventListener('orientationchange',()=>{setTimeout(rs,150);setTimeout(rs,600)});
 
 function renderMenuSkin(){
  const mc=$('menuSkinCanvas');if(!mc||!P)return;const ctx=mc.getContext('2d');ctx.clearRect(0,0,96,96);
@@ -804,7 +813,7 @@ function drawKnife(){
 }
 
 function drawGame(){
- g.drawImage(bgc,0,0,W,H);
+ if(bgc.width>0&&bgc.height>0)g.drawImage(bgc,0,0,W,H);
  const M=curMap(),sw=ev.sway?ev.sway.ang:0;
  g.save();g.translate(cx+(shk?(Math.random()-.5)*shk*16:0),cy+(shk?(Math.random()-.5)*shk*16:0));g.rotate(sw);g.translate(-cx,-cy);
  const MI=MAPIMG[M.id],pixPan=ok(MI.pan);
@@ -864,11 +873,15 @@ function drawGame(){
 // ===== Eğim (tilt) kontrolü =====
 let tiltAsk=0;
 function askTilt(){if(tiltAsk)return;tiltAsk=1;try{const D=window.DeviceOrientationEvent;if(D&&typeof D.requestPermission==='function')D.requestPermission().catch(()=>{})}catch(e){}}
-// Sifir noktasi = oyun BASLADIGI andaki telefon acisi (intro/geri sayim boyunca surekli guncellenir, "play" ile kilitlenir).
-// Menzil: tam hiz icin ~22 derece (eskiden 36). Telefon dik tutuluyorsa ekrani gorulebilir sinirin (yaklasik 95 derece)
-// otesine gecmek gerekmesin diye, o yondeki menzil kalan bosluga gore otomatik kisalir.
-// Egri: sifira yakin hassas, tam egimde hizli (ustel 1.45).
+// SIFIR NOKTASI SABIT (mutlak aci): telefon nasil baslatilirsa baslatilsin sifir degismez.
+// Dikey (portrait) icin: sag-sol = telefon yana yatik degilken 0 derece, yukari-asagi = ayarlardaki "Egim sifiri"
+// (30 / 50 / 70 derece, varsayilan 50; 0 derece = telefon yatay, 90 derece = tam dik). Bu acida top durur.
+// Yatay (landscape) modda sabit sifir guvenilir olmadigi icin oyun basladigi andaki aci sifir alinir.
+// Menzil: tam hiz ~22 derece; ekrani gorulebilir sinirin (~95 derece) otesine gecmek gerekmesin diye o yondeki
+// menzil kalan bosluga gore otomatik kisalir. Egri: sifira yakin hassas, tam egimde hizli (ustel 1.45).
+const ZEROS={low:30,mid:50,high:70};
 const TILT_RG=22,TILT_DZ=.07,TILT_PW=1.45,LIMB=[-70,95],LIMG=[-80,80];
+function tiltZero(a){const z=ZEROS[S.zero]||50;if(a===0)return{x:0,y:z};if(a===180||a===-180)return{x:0,y:-z};return null}
 const negL=l=>[-l[1],-l[0]];
 function tiltLimits(a){
  if(a===90||a===-270)return[LIMB,negL(LIMG)];
@@ -884,9 +897,10 @@ function onOrient(e){
  let x=e.gamma,y=e.beta;
  const a=(screen.orientation&&screen.orientation.angle)||window.orientation||0;
  if(a===90||a===-270){x=e.beta;y=-e.gamma}else if(a===-90||a===270){x=-e.beta;y=e.gamma}else if(a===180||a===-180){x=-e.gamma;y=-e.beta}
- if(!tCal||paused||st==='home'||st==='intro'||st==='count')tCal={x,y};
+ let cal=tiltZero(a);
+ if(!cal){if(!tCal||paused||st==='home'||st==='intro'||st==='count')tCal={x,y};cal=tCal}
  const L=tiltLimits(a);
- tilt.x=tiltAxis(x,tCal.x,L[0]);tilt.y=tiltAxis(y,tCal.y,L[1]);
+ tilt.x=tiltAxis(x,cal.x,L[0]);tilt.y=tiltAxis(y,cal.y,L[1]);
 }
 addEventListener('deviceorientation',onOrient);
 cv.addEventListener('pointerdown',e=>{drag=S.ctrl==='touch'?{sx:e.clientX,sy:e.clientY}:null;cv.setPointerCapture(e.pointerId);initAudio()});
@@ -928,9 +942,10 @@ $('play').onclick=start;$('again').onclick=()=>{if(mp.on){mpLeave();openMP()}els
 $('shop').onclick=()=>{show('shopS');renderShop()};
 $('back').onclick=()=>show('home');$('settingsBack').onclick=()=>show('home');
 $('menu').onclick=toHome;
-$('settingsBtn').onclick=()=>show('settingsS');
+$('settingsBtn').onclick=()=>{show('settingsS');updateTexts()};
 $('langSelect').onchange=e=>{S.lang=e.target.value;save();updateTexts()};
-$('ctrlSelect').onchange=e=>{S.ctrl=e.target.value;S.ctrlSet=1;tCal=null;save();askTilt()};
+$('ctrlSelect').onchange=e=>{S.ctrl=e.target.value;S.ctrlSet=1;tCal=null;save();askTilt();$('zeroRow').style.display=S.ctrl==='tilt'?'':'none'};
+$('zeroSelect').onchange=e=>{S.zero=e.target.value;save()};
 
 $('reviveBtn').onclick=()=>{if(st!=='over'||revived||mp.on)return;PK.rewarded(ok=>{if(ok)doRevive();else toast(T().noAd)})};
 function doRevive(){
@@ -1197,7 +1212,7 @@ $('mpBack').onclick=()=>{mpLobbyLeave();show('home')};
 {const uc=PK.urlRoom();if(uc&&mpCfg()){mp.pendJoin=uc;openMP()}}
 
 let last=performance.now();
-(function loop(n){const dt=Math.min((n-last)/1000,.05);last=n;PK.sync();mpTick(dt);update(dt);draw();if(st==='home')renderMenuSkin();requestAnimationFrame(loop)})(last);
+(function loop(n){requestAnimationFrame(loop);const dt=Math.min((n-last)/1000,.05);last=n;try{PK.sync();mpTick(dt);update(dt);draw();if(st==='home')renderMenuSkin()}catch(e){try{console.error(e)}catch(_){}}})(last);
 
 // ===== Açılış korosu: "Save the Bob" (WebAudio, katedral yankısı) =====
 const VOW={a:[800,1150,2900],e:[500,1850,2700],u:[600,1200,2600],o:[500,880,2800],oo:[330,780,2600]};
