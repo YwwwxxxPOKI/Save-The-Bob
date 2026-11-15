@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="color-scheme:only light;background:#f1e3cf">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Save the Bob"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#f1e3cf"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light">
-<style>:root{color-scheme:light only}html,body{background:#f1e3cf;color:#4b3a30}</style>
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Save the Bob"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#f1e3cf"><meta name="color-scheme" content="only light"><meta name="supported-color-schemes" content="light"><meta name="darkreader-lock"><meta name="nightmode" content="disable">
+<style>:root{color-scheme:only light}html,body{background:#f1e3cf;color:#4b3a30}*{forced-color-adjust:none}
+@media (inverted-colors){html{filter:invert(100%)}}</style>
 <title>Save the Bob | Deluxe Edition</title>
 <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js" defer></script>
 <style>
@@ -126,7 +127,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:20px;background:#ff9d7e;bo
 
 /* ===== Telefon düzeni + karanlık mod düzeltmeleri ===== */
 /* Karanlık mod: oyun HER ZAMAN açık renk. Medya sorgusu yok, geçiş yok, renk ilk karede sabit. */
-:root{color-scheme:light only;forced-color-adjust:none}
+:root,body,canvas,img,svg,button,select,input{color-scheme:only light}
 html,body{background:#f1e3cf!important;color:#4b3a30}
 .item,.settings-box,.mpcard,.pill,.sq,#toast,#best{background:#fff8ee!important;color:#4b3a30!important}
 select,input{background:#f1e3cf!important;color:#4b3a30!important}
@@ -664,8 +665,8 @@ function update(dt){
  if(mp.match){for(const id in mp.peers){const p=mp.peers[id],tx=cx+p.x*R,ty=cy+p.y*R,v=mp.pv[id]||(mp.pv[id]={x:tx,y:ty});v.x+=(tx-v.x)*Math.min(dt*12,1);v.y+=(ty-v.y)*Math.min(dt*12,1);v.a=p.a;v.s=p.s;v.n=p.n}for(const id in mp.pv)if(!mp.peers[id])delete mp.pv[id]}
  fl+=dt;cmbT-=dt;shk=Math.max(0,shk-dt*2.2);evCool-=dt;
  const kl=keys.ArrowLeft||keys.a||keys.A,kr=keys.ArrowRight||keys.d||keys.D,ku=keys.ArrowUp||keys.w||keys.W,kd=keys.ArrowDown||keys.s||keys.S;
- tl.x+=((kl?-1:kr?1:tilt.x)-tl.x)*Math.min(dt*6,1);
- tl.y+=((ku?-1:kd?1:tilt.y)-tl.y)*Math.min(dt*6,1);
+ tl.x+=((kl?-1:kr?1:tilt.x)-tl.x)*Math.min(dt*10,1);
+ tl.y+=((ku?-1:kd?1:tilt.y)-tl.y)*Math.min(dt*10,1);
  if(st!=='over'&&Math.random()<dt*3.5)parts.push({x:cx+(Math.random()-.5)*R*1.4,y:cy+(Math.random()-.5)*R*.8,vx:(Math.random()-.5)*12,vy:-35-Math.random()*25,l:2,m:2,c:'steam',r:12+Math.random()*12});
  parts=parts.filter(p=>{p.l-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.c!=='steam'&&!p.t&&!p.ng)p.vy+=320*dt;return p.l>0}).slice(-240);
  const home=st==='home';
@@ -863,15 +864,29 @@ function drawGame(){
 // ===== Eğim (tilt) kontrolü =====
 let tiltAsk=0;
 function askTilt(){if(tiltAsk)return;tiltAsk=1;try{const D=window.DeviceOrientationEvent;if(D&&typeof D.requestPermission==='function')D.requestPermission().catch(()=>{})}catch(e){}}
+// Sifir noktasi = oyun BASLADIGI andaki telefon acisi (intro/geri sayim boyunca surekli guncellenir, "play" ile kilitlenir).
+// Menzil: tam hiz icin ~22 derece (eskiden 36). Telefon dik tutuluyorsa ekrani gorulebilir sinirin (yaklasik 95 derece)
+// otesine gecmek gerekmesin diye, o yondeki menzil kalan bosluga gore otomatik kisalir.
+// Egri: sifira yakin hassas, tam egimde hizli (ustel 1.45).
+const TILT_RG=22,TILT_DZ=.07,TILT_PW=1.45,LIMB=[-70,95],LIMG=[-80,80];
+const negL=l=>[-l[1],-l[0]];
+function tiltLimits(a){
+ if(a===90||a===-270)return[LIMB,negL(LIMG)];
+ if(a===-90||a===270)return[negL(LIMB),LIMG];
+ if(a===180||a===-180)return[negL(LIMG),negL(LIMB)];
+ return[LIMG,LIMB]}
+function tiltAxis(v,c,lim){
+ const d=v-c,room=d>=0?lim[1]-c:c-lim[0],rg=Math.max(8,Math.min(TILT_RG/S.sens,room*.8));
+ const t=clamp(d/rg,-1,1),m=Math.abs(t);if(m<TILT_DZ)return 0;
+ return Math.sign(t)*Math.pow((m-TILT_DZ)/(1-TILT_DZ),TILT_PW)}
 function onOrient(e){
  if(S.ctrl!=='tilt'||e.gamma==null||e.beta==null)return;
  let x=e.gamma,y=e.beta;
  const a=(screen.orientation&&screen.orientation.angle)||window.orientation||0;
  if(a===90||a===-270){x=e.beta;y=-e.gamma}else if(a===-90||a===270){x=-e.beta;y=e.gamma}else if(a===180||a===-180){x=-e.gamma;y=-e.beta}
- if(!tCal)tCal={x,y};
- const rg=36/S.sens;
- const tx=clamp((x-tCal.x)/rg,-1,1),ty=clamp((y-tCal.y)/rg,-1,1);
- tilt.x=Math.abs(tx)<.05?0:tx;tilt.y=Math.abs(ty)<.05?0:ty;
+ if(!tCal||paused||st==='home'||st==='intro'||st==='count')tCal={x,y};
+ const L=tiltLimits(a);
+ tilt.x=tiltAxis(x,tCal.x,L[0]);tilt.y=tiltAxis(y,tCal.y,L[1]);
 }
 addEventListener('deviceorientation',onOrient);
 cv.addEventListener('pointerdown',e=>{drag=S.ctrl==='touch'?{sx:e.clientX,sy:e.clientY}:null;cv.setPointerCapture(e.pointerId);initAudio()});
@@ -991,6 +1006,7 @@ const unlock=()=>{initAudio();try{if(ac&&ac.state!=='running')ac.resume()}catch(
  if(!_sa){_sa=1;try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}try{const a=new Audio(SIL);a.loop=true;a.volume=.01;a.play().catch(()=>{})}catch(e){}}};
 ['touchend','pointerup','click','keydown'].forEach(e=>addEventListener(e,unlock,{passive:true}));
 addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault()},{passive:false});
+addEventListener('wheel',e=>{if(!(e.target.closest&&e.target.closest('.grid,.mpwrap,.screen.on')))e.preventDefault()},{passive:false});
 ['contextmenu','gesturestart','gesturechange','dragstart'].forEach(ev=>addEventListener(ev,e=>e.preventDefault()));
 document.addEventListener('touchmove',e=>{if(!(e.target.closest&&e.target.closest('.grid,.mpwrap,.screen.on')))e.preventDefault()},{passive:false});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){pauseGame();try{ac&&ac.suspend()}catch(e){}}else{try{ac&&!muted&&ac.resume()}catch(e){}}});
@@ -1216,7 +1232,7 @@ function playFishChoir(){
   s.connect(gn);gn.connect(mg);gn.connect(cv);s.start(st0,0,d+.02);mx=Math.max(mx,d+(i%3)*.035)}
  return mx}
 function tryChoirAudio(){
- if(choirDone)return;if(muted){choirDone=true;return}
+ if(choirDone)return;if(muted||st!=='home'){choirDone=true;return}
  try{initAudio();if(!ac||ac.state!=='running')return;
   choirDone=true;const d=playFishChoir();
   if(d){choirDur=d+.6;if(!introDone){clearTimeout(introTm);clearTimeout(introTm2);introTm2=setTimeout(()=>$('home').classList.add('big'),Math.max(700,d*300));introTm=setTimeout(revealHome,(d+.3)*1000)}}
@@ -1232,7 +1248,7 @@ function holyIntro(){
   go();let n=0;const iv=setInterval(()=>{if(choirDone||++n>12)return clearInterval(iv);go()},250)}}catch(e){}
  introTm2=setTimeout(()=>$('home').classList.add('big'),900);
  introTm=setTimeout(revealHome,1700)}
-['pointerdown','touchstart','keydown','click'].forEach(ev=>addEventListener(ev,()=>{if(choirDone)return;try{initAudio();if(ac)ac.resume().then(()=>Promise.race([voicesReady,new Promise(r=>setTimeout(r,1500))])).then(()=>{if(st==='home')tryChoirAudio();else choirDone=true}).catch(()=>{})}catch(e){}},{passive:true}));
+['pointerdown','pointerup','touchstart','touchend','mouseup','keydown','click'].forEach(ev=>addEventListener(ev,()=>{if(choirDone)return;try{initAudio();if(ac)ac.resume().then(()=>Promise.race([voicesReady,new Promise(r=>setTimeout(r,1500))])).then(()=>{if(st==='home')tryChoirAudio();else choirDone=true}).catch(()=>{})}catch(e){}},{passive:true}));
 $('home').classList.add('pre');
 $('home').addEventListener('pointerdown',()=>{if(introDone)return;revealHome()});
 addEventListener('keydown',()=>{if(introDone||st!=='home')return;revealHome()});
