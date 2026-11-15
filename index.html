@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Save the Bob"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#f1e3cf">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Save the Bob"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#f1e3cf"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light">
+<style>:root{color-scheme:light only}html,body{background:#f1e3cf;color:#4b3a30}</style>
 <title>Save the Bob | Deluxe Edition</title>
 <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js" defer></script>
 <style>
@@ -124,7 +125,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:20px;background:#ff9d7e;bo
 .hud{justify-content:flex-start!important;padding-left:12px}
 
 /* ===== Telefon düzeni + karanlık mod düzeltmeleri ===== */
-@media (prefers-color-scheme:dark){:root{color-scheme:light only;--bg:#f1e3cf;--ink:#4b3a30;--card:#fff8ee}html,body{background:#f1e3cf!important;color:#4b3a30}.item,.settings-box,.mpcard,.pill,.sq,#toast,#best{background:#fff8ee!important;color:#4b3a30!important}select,input{background:#f1e3cf!important;color:#4b3a30!important}}
+/* Karanlık mod: oyun HER ZAMAN açık renk. Medya sorgusu yok, geçiş yok, renk ilk karede sabit. */
+:root{color-scheme:light only;forced-color-adjust:none}
+html,body{background:#f1e3cf!important;color:#4b3a30}
+.item,.settings-box,.mpcard,.pill,.sq,#toast,#best{background:#fff8ee!important;color:#4b3a30!important}
+select,input{background:#f1e3cf!important;color:#4b3a30!important}
+*{transition-property:opacity,transform,box-shadow,filter!important}
 .screen{justify-content:flex-start;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;
  padding:calc(env(safe-area-inset-top,0px) + 72px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 16px) max(16px,env(safe-area-inset-left,0px))}
 .screen>:first-child{margin-top:auto}.screen>:last-child{margin-bottom:auto}
@@ -958,18 +964,26 @@ function pxBub(b){pxRing(b.x,b.y,b.r,'rgba(255,235,170,.85)',3)}
 function pxOil(){const o=ev.oil,c=o.cov,sr=R*Math.min(1,o.t/1.3);pxDisc(cx,cy,sr,'rgba(255,190,60,'+.5*c+')');pxRing(cx,cy,sr,'rgba(255,245,200,'+.8*c+')',PXS)}
 
 // ===== Poki SDK =====
-const PK={gp:false,busy:false,sdk(){return window.PokiSDK},
- init(){try{const s=PK.sdk();if(s)s.init().catch(()=>{})}catch(e){}},
- loaded(){try{const s=PK.sdk();if(s)s.gameLoadingFinished()}catch(e){}},
+// NOT: poki-sdk.js "defer" ile yuklenir, yani bu satirlar calisirken window.PokiSDK henuz yoktur.
+// Eskiden PK.init() burada hemen cagriliyordu, SDK yokken hicbir sey yapmiyordu, SDK hic baslatilmiyordu
+// ve commercialBreak() 5-6 sn bekleyip/takilip Play'i geciktiriyordu. Simdi SDK gelince baslatilir,
+// hazir degilse (Poki disi alan adi, reklam engelleyici, gec yukleme) Play reklam beklemeden DIREKT acilir.
+const PK={gp:false,busy:false,ready:false,inited:false,sdk(){return window.PokiSDK},
+ init(){if(PK.inited)return;try{const s=PK.sdk();if(!s)return;PK.inited=true;s.init().then(()=>{PK.ready=true}).catch(()=>{PK.ready=false})}catch(e){}},
+ loaded(){PK.init();try{const s=PK.sdk();if(s&&s.gameLoadingFinished)s.gameLoadingFinished()}catch(e){}},
  sync(){const on=!!((st==='play'||st==='count'||st==='intro')&&!paused&&!document.hidden);if(on===PK.gp)return;PK.gp=on;try{const s=PK.sdk();if(s)on?s.gameplayStart():s.gameplayStop()}catch(e){}},
  pre(){try{ac&&ac.suspend()}catch(e){}},post(){try{ac&&!muted&&ac.resume()}catch(e){}},
- commercial(cb){if(PK.busy)return;PK.busy=true;const fin=()=>{if(!PK.busy)return;PK.busy=false;PK.post();cb()};
-  try{const s=PK.sdk();if(!s)return fin();s.commercialBreak(()=>PK.pre()).then(fin).catch(fin)}catch(e){fin()}},
+ commercial(cb){if(PK.busy)return;PK.busy=true;let tm=0,ad=false,done=false;
+  const fin=()=>{if(done)return;done=true;clearTimeout(tm);PK.busy=false;PK.post();cb()};
+  try{const s=PK.sdk();
+   if(!s||!PK.ready||!s.commercialBreak)return fin(); // SDK hazir degil: bekleme yok, direkt basla
+   tm=setTimeout(()=>{if(!ad)fin()},1500); // reklam baslamadiysa en fazla 1.5 sn bekle
+   s.commercialBreak(()=>{ad=true;clearTimeout(tm);PK.pre()}).then(()=>{PK.post();fin()}).catch(fin)}catch(e){fin()}},
  inviteUrl(code,cb){try{const s=PK.sdk();if(s&&s.shareableURL){s.shareableURL({room:code}).then(u=>cb(u)).catch(()=>cb(code));return}}catch(e){}cb(code)},
  urlRoom(){let c='';try{const s=PK.sdk();if(s&&s.getURLParam)c=s.getURLParam('room')||''}catch(e){}if(!c){try{c=new URLSearchParams(location.search).get('room')||''}catch(e){}}return String(c).replace(/[^A-Za-z0-9_-]/g,'').slice(0,24)},
- rewarded(cb){try{const s=PK.sdk();if(!s)return cb(false);s.rewardedBreak(()=>PK.pre()).then(ok=>{PK.post();cb(!!ok)}).catch(()=>{PK.post();cb(false)})}catch(e){cb(false)}}};
+ rewarded(cb){try{const s=PK.sdk();if(!s||!PK.ready)return cb(false);s.rewardedBreak(()=>PK.pre()).then(ok=>{PK.post();cb(!!ok)}).catch(()=>{PK.post();cb(false)})}catch(e){cb(false)}}};
 function start(){if(mp.on)mpLeave();PK.commercial(startRun)}
-PK.init();addEventListener('load',()=>PK.loaded());
+document.addEventListener('DOMContentLoaded',()=>PK.init());addEventListener('load',()=>PK.loaded());PK.init();
 
 // ===== iOS / tarayıcı sağlamlaştırma =====
 const SIL='data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';let _sa=0;
@@ -1205,12 +1219,17 @@ function tryChoirAudio(){
  if(choirDone)return;if(muted){choirDone=true;return}
  try{initAudio();if(!ac||ac.state!=='running')return;
   choirDone=true;const d=playFishChoir();
-  if(d){choirDur=d+.6;if(!introDone){clearTimeout(introTm);clearTimeout(introTm2);introTm2=setTimeout(()=>$('home').classList.add('big'),Math.max(700,d*300));introTm=setTimeout(revealHome,(d+.3)*1000)}}else playChoir(ac,mg,ac.currentTime+.05)}catch(e){}}
+  if(d){choirDur=d+.6;if(!introDone){clearTimeout(introTm);clearTimeout(introTm2);introTm2=setTimeout(()=>$('home').classList.add('big'),Math.max(700,d*300));introTm=setTimeout(revealHome,(d+.3)*1000)}}
+  else{playChoir(ac,mg,ac.currentTime+.05);if(!introDone){clearTimeout(introTm);clearTimeout(introTm2);introTm2=setTimeout(()=>$('home').classList.add('big'),2600);introTm=setTimeout(revealHome,4900)}}}catch(e){}}
 function holyIntro(){
  if(introBusy||introDone)return;introBusy=true;
  $('home').classList.add('sing');
  // Ekrana dokunmadan, oyun acilir acilmaz calmaya calis. Tarayici izin vermezse ilk dokunus/tus bu sesi tetikler.
- try{initAudio();if(ac)ac.resume().then(()=>Promise.race([voicesReady,new Promise(r=>setTimeout(r,2500))])).then(tryChoirAudio).catch(()=>{})}catch(e){}
+ // Ses dosyalarini (voicesReady) beklemeden hemen dene: dosya yoksa/gecse sentez koro zaten calar. Hazirsa Fish sesi calar.
+ try{initAudio();if(ac){
+  ac.onstatechange=()=>{if(ac.state==='running')tryChoirAudio()};
+  const go=()=>{if(choirDone)return;ac.resume().then(()=>Promise.race([voicesReady,new Promise(r=>setTimeout(r,600))])).then(tryChoirAudio).catch(()=>{})};
+  go();let n=0;const iv=setInterval(()=>{if(choirDone||++n>12)return clearInterval(iv);go()},250)}}catch(e){}
  introTm2=setTimeout(()=>$('home').classList.add('big'),900);
  introTm=setTimeout(revealHome,1700)}
 ['pointerdown','touchstart','keydown','click'].forEach(ev=>addEventListener(ev,()=>{if(choirDone)return;try{initAudio();if(ac)ac.resume().then(()=>Promise.race([voicesReady,new Promise(r=>setTimeout(r,1500))])).then(()=>{if(st==='home')tryChoirAudio();else choirDone=true}).catch(()=>{})}catch(e){}},{passive:true}));
