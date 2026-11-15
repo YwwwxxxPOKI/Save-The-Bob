@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Save the Bob"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#f1e3cf">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Save the Bob"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#f1e3cf"><meta name="color-scheme" content="light">
 <title>Save the Bob | Deluxe Edition</title>
 <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js" defer></script>
 <style>
-:root{--bg:#f1e3cf;--ink:#4b3a30;--card:#fff8ee;--peach:#ff9d7e;--sage:#8fcf9b;--gold:#ffcf5c;box-sizing:border-box}
+:root{color-scheme:light only;forced-color-adjust:none;--bg:#f1e3cf;--ink:#4b3a30;--card:#fff8ee;--peach:#ff9d7e;--sage:#8fcf9b;--gold:#ffcf5c;box-sizing:border-box}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);touch-action:none;font-family:ui-rounded,"SF Pro Rounded",Nunito,"Segoe UI",system-ui,sans-serif}
 canvas#c{position:fixed;inset:0;width:100%;height:100%}
@@ -34,10 +34,10 @@ body.ingame #settingsBtn{display:none}
 .tabs{display:flex;gap:6px;background:rgba(75,58,48,.12);padding:5px;border-radius:18px}
 .tab{border:0;background:none;font:800 15px inherit;font-family:inherit;padding:9px 22px;border-radius:14px;color:var(--ink);cursor:pointer}
 .tab.on{background:var(--card);box-shadow:0 3px 10px rgba(110,70,30,.18)}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:min(380px,100%);max-height:54vh;overflow-y:auto;padding:6px;touch-action:pan-y}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(8px,3vmin,14px);width:min(380px,100%);max-height:54vh;overflow-y:auto;padding:6px;touch-action:pan-y}
 .item{background:var(--card);border-radius:24px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 8px 20px rgba(110,70,30,.1);border:2px solid rgba(255,255,255,.8)}
 .item.sel{outline:4px solid var(--sage);box-shadow:0 8px 24px rgba(143,207,155,.3)}
-.item canvas{width:88px;height:88px}
+.item canvas{width:min(88px,22vmin,26vw);height:min(88px,22vmin,26vw);aspect-ratio:1}
 .item b{font-size:16px}
 .big{font-size:48px;font-weight:900;color:var(--ink);text-shadow:0 3px 10px rgba(110,70,30,.15)}
 #nr{font-weight:900;color:#d96e4f;font-size:22px;animation:pop .6s cubic-bezier(.3,1.6,.5,1) both}
@@ -123,6 +123,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:20px;background:#ff9d7e;bo
 .mpcode{font-size:34px;letter-spacing:6px;font-weight:900}
 
 .hud{justify-content:flex-start!important;padding-left:12px}
+@media (max-width:360px){.item{padding:8px}.item b{font-size:14px!important}.btn{min-width:0;padding:12px 20px;font-size:16px}}
+@media (min-width:600px) and (min-height:700px){.grid{width:min(460px,100%)}.item canvas{width:100px;height:100px}}
 </style>
 </head>
 <body>
@@ -932,13 +934,14 @@ const PK={gp:false,busy:false,sdk(){return window.PokiSDK},
  sync(){const on=!!((st==='play'||st==='count'||st==='intro')&&!paused&&!document.hidden);if(on===PK.gp)return;PK.gp=on;try{const s=PK.sdk();if(s)on?s.gameplayStart():s.gameplayStop()}catch(e){}},
  pre(){try{ac&&ac.suspend()}catch(e){}},post(){try{ac&&!muted&&ac.resume()}catch(e){}},
  commercial(cb){if(PK.busy)return;PK.busy=true;let tm=0;const fin=()=>{clearTimeout(tm);if(!PK.busy)return;PK.busy=false;PK.post();cb()};
-  try{const s=PK.sdk();if(!s)return fin();tm=setTimeout(fin,3000);s.commercialBreak(()=>{if(!PK.busy)return;clearTimeout(tm);PK.pre()}).then(fin).catch(fin)}catch(e){fin()}},
+  try{const s=PK.sdk();if(!s)return fin();tm=setTimeout(fin,8000);s.commercialBreak(()=>{if(!PK.busy)return;clearTimeout(tm);PK.pre()}).then(fin).catch(fin)}catch(e){fin()}},
  inviteUrl(code,cb){try{const s=PK.sdk();if(s&&s.shareableURL){s.shareableURL({room:code}).then(u=>cb(u)).catch(()=>cb(code));return}}catch(e){}cb(code)},
  urlRoom(){let c='';try{const s=PK.sdk();if(s&&s.getURLParam)c=s.getURLParam('room')||''}catch(e){}if(!c){try{c=new URLSearchParams(location.search).get('room')||''}catch(e){}}return String(c).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8)},
  rewarded(cb){let done=false,tm=0;const fin=ok=>{if(done)return;done=true;clearTimeout(tm);PK.post();cb(!!ok)};
-  try{const s=PK.sdk();if(!s)return cb(false);tm=setTimeout(()=>fin(false),3000);s.rewardedBreak(()=>{if(done)return;clearTimeout(tm);PK.pre()}).then(fin).catch(()=>fin(false))}catch(e){cb(false)}}};
+  try{const s=PK.sdk();if(!s)return cb(false);tm=setTimeout(()=>fin(false),15000);s.rewardedBreak(()=>{if(done)return;clearTimeout(tm);PK.pre()}).then(fin).catch(()=>fin(false))}catch(e){cb(false)}}};
 function start(){if(mp.on)mpLeave();PK.commercial(startRun)}
-PK.init();addEventListener('load',()=>PK.loaded());
+PK.boot=()=>{const s=PK.sdk();if(!s)return false;s.init().then(()=>{try{s.gameLoadingFinished()}catch(e){}}).catch(()=>{});return true};
+(function pkTry(n){if(!PK.boot()&&n<150)setTimeout(()=>pkTry(n+1),100)})(0);
 
 // ===== iOS / tarayıcı sağlamlaştırma =====
 const SIL='data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';let _sa=0;
